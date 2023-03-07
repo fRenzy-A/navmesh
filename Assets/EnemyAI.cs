@@ -11,18 +11,21 @@ public class EnemyAI : MonoBehaviour
 
     public LayerMask whatIsGround, whatIsPlayer;
 
+    Material material;
 
     public Vector3 walkPoint;
     bool walkPointSet;
+    bool chasing;
     public float walkPointRange;
 
 
-    public float sightRange, attackRange;
-    public bool playerInSightRange, playerInAttackRange;
+    public float searchRange, sightRange, attackRange;
+    public bool playerInSearchRange, playerInSightRange, playerInAttackRange;
     private void Awake()
     {
         player = GameObject.Find("Player").transform;
         agent = GetComponent<NavMeshAgent>();
+        material = GetComponent<Renderer>().material;
     }
     // Start is called before the first frame update
     void Start()
@@ -33,18 +36,16 @@ public class EnemyAI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer)    ;
+        playerInSearchRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
+        playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
         if (!playerInSightRange && !playerInAttackRange) Patroling();
         if (playerInSightRange && !playerInAttackRange) ChasePlayer();
+        if (!playerInSightRange && chasing) SearchPlayer();
         if (playerInSightRange && playerInAttackRange) AttackPlayer();
     }
 
-    private void ChasePlayer()
-    {
-        agent.SetDestination(player.position);
-    }
 
     private void Patroling()
     {
@@ -58,6 +59,28 @@ public class EnemyAI : MonoBehaviour
         //Walkpoint reached
         if (distanceToWalkPoint.magnitude < 1f)
             walkPointSet = false;
+
+        material.color = Color.green;
+    }
+
+    private void SearchPlayer()
+    {
+        
+    }
+    private void ChasePlayer()
+    {
+        agent.SetDestination(player.position);
+        chasing = true;
+
+        material.color = Color.yellow;
+    }
+
+
+    private void AttackPlayer()
+    {
+        agent.SetDestination(transform.position);
+
+        material.color = Color.red;   
     }
     private void SearchWalkPoint()
     {
@@ -70,18 +93,13 @@ public class EnemyAI : MonoBehaviour
         if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
             walkPointSet = true;
     }
-
-    private void AttackPlayer()
-    {
-        agent.SetDestination(transform.position);
-
-
-    }
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, sightRange);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, walkPointRange);
     }
 }
