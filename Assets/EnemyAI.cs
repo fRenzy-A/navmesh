@@ -14,10 +14,15 @@ public class EnemyAI : MonoBehaviour
     Material material;
 
     public Vector3 walkPoint;
-    bool walkPointSet;
-    bool chasing;
-    public float walkPointRange;
+    public Vector3 searchWalkPoint;
 
+    bool walkPointSet, searchWalkPointSet;
+    public float walkPointRange, searchWalkPointRange;
+
+    public float chasingTime = 1100.0f;
+
+    bool chasing;
+    bool searching;
 
     public float searchRange, sightRange, attackRange;
     public bool playerInSearchRange, playerInSightRange, playerInAttackRange;
@@ -36,20 +41,21 @@ public class EnemyAI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+
         playerInSearchRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
-        playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
+        playerInSightRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
-        if (!playerInSightRange && !playerInAttackRange) Patroling();
+        if (!playerInSightRange && !playerInAttackRange && !playerInSearchRange) Patroling();
         if (playerInSightRange && !playerInAttackRange) ChasePlayer();
-        if (!playerInSightRange && chasing) SearchPlayer();
+        if (!playerInSightRange && playerInSearchRange) SearchPlayer();
         if (playerInSightRange && playerInAttackRange) AttackPlayer();
     }
 
 
     private void Patroling()
     {
-        if (!walkPointSet) SearchWalkPoint();
+        if (!walkPointSet) MainSearchWalkPoint();
 
         if (walkPointSet)
             agent.SetDestination(walkPoint);
@@ -65,12 +71,24 @@ public class EnemyAI : MonoBehaviour
 
     private void SearchPlayer()
     {
-        
+        searching = true;
+        if (!searchWalkPointSet) SearchWalkPoint();
+
+        if (searchWalkPointSet)
+            agent.SetDestination(searchWalkPoint);
+
+        Vector3 distanceToWalkPoint = player.position - searchWalkPoint;
+
+        //Walkpoint reached
+        if (distanceToWalkPoint.magnitude < 1f)
+            searchWalkPointSet = false;
+
+        material.color= Color.magenta;
     }
     private void ChasePlayer()
     {
         agent.SetDestination(player.position);
-        chasing = true;
+
 
         material.color = Color.yellow;
     }
@@ -82,7 +100,7 @@ public class EnemyAI : MonoBehaviour
 
         material.color = Color.red;   
     }
-    private void SearchWalkPoint()
+    private void MainSearchWalkPoint()
     {
         //Calculate random point in range
         float randomZ = Random.Range(-walkPointRange, walkPointRange);
@@ -93,6 +111,17 @@ public class EnemyAI : MonoBehaviour
         if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
             walkPointSet = true;
     }
+
+    private void SearchWalkPoint()
+    {
+        float randomZ = Random.Range(-searchWalkPointRange, searchWalkPointRange);
+        float randomX = Random.Range(-searchWalkPointRange, searchWalkPointRange);
+
+        searchWalkPoint = new Vector3(player.position.x + randomX, player.position.y, player.position.z + randomZ);
+
+        if (Physics.Raycast(searchWalkPoint, -transform.up, 2f, whatIsGround))
+            searchWalkPointSet = true;
+    }
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
@@ -101,5 +130,7 @@ public class EnemyAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, sightRange);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, walkPointRange);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, searchRange);
     }
 }

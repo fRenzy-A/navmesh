@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657844, g: 0.49641222, b: 0.57481694, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -251,10 +251,13 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   walkPoint: {x: 0, y: 0, z: 0}
-  walkPointRange: 4.38
-  searchRange: 0
-  sightRange: 11.76
-  attackRange: 3.2
+  searchWalkPoint: {x: 0, y: 0, z: 0}
+  walkPointRange: 3.7
+  searchWalkPointRange: 2.69
+  chasingTime: 5
+  searchRange: 13.85
+  sightRange: 8.72
+  attackRange: 2.15
   playerInSearchRange: 1
   playerInSightRange: 1
   playerInAttackRange: 1
