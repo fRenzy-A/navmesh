@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UIElements;
 
 public class EnemyAI : MonoBehaviour
 {
@@ -16,7 +17,10 @@ public class EnemyAI : MonoBehaviour
     public Vector3 walkPoint;
     public Vector3 searchWalkPoint;
 
+    public Vector3 mainPatrolPoint;
+
     bool walkPointSet, searchWalkPointSet;
+    bool reachedWalkPoint;
     public float walkPointRange, searchWalkPointRange;
 
     public float chasingTime = 1100.0f;
@@ -35,7 +39,7 @@ public class EnemyAI : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        mainPatrolPoint = transform.position;
     }   
 
     // Update is called once per frame
@@ -55,18 +59,46 @@ public class EnemyAI : MonoBehaviour
 
     private void Patroling()
     {
-        if (!walkPointSet) MainSearchWalkPoint();
-
+        if (!walkPointSet)
+        {
+            MainSearchWalkPoint();
+        }
         if (walkPointSet)
+        {
             agent.SetDestination(walkPoint);
+        }
+        if (reachedWalkPoint)
+        {
+            
+        }
+
 
         Vector3 distanceToWalkPoint = transform.position - walkPoint;
+        Vector3 distanceToPatrolPoint = transform.position - mainPatrolPoint;
 
         //Walkpoint reached
         if (distanceToWalkPoint.magnitude < 1f)
+        {
+            agent.SetDestination(mainPatrolPoint);
+        }
+        if (distanceToPatrolPoint.magnitude < 1f)
+        {
             walkPointSet = false;
+        }
+            
 
         material.color = Color.green;
+    }
+    private void MainSearchWalkPoint()
+    {
+        //Calculate random point in range
+        float randomZ = Random.Range(-walkPointRange, walkPointRange);
+        float randomX = Random.Range(-walkPointRange, walkPointRange);
+
+        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
+
+        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
+            walkPointSet = true;
     }
 
     private void SearchPlayer()
@@ -99,17 +131,6 @@ public class EnemyAI : MonoBehaviour
         agent.SetDestination(transform.position);
 
         material.color = Color.red;   
-    }
-    private void MainSearchWalkPoint()
-    {
-        //Calculate random point in range
-        float randomZ = Random.Range(-walkPointRange, walkPointRange);
-        float randomX = Random.Range(-walkPointRange, walkPointRange);
-
-        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
-
-        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
-            walkPointSet = true;
     }
 
     private void SearchWalkPoint()
