@@ -17,6 +17,8 @@ public class EnemyAI : MonoBehaviour
     public Vector3 walkPoint;
     public Vector3 searchWalkPoint;
 
+    public Transform[] patrolPoints;
+    private int whichPatrolPoint = 0;
     public Vector3 mainPatrolPoint;
 
     bool walkPointSet, searchWalkPointSet;
@@ -35,31 +37,44 @@ public class EnemyAI : MonoBehaviour
         player = GameObject.Find("Player").transform;
         agent = GetComponent<NavMeshAgent>();
         material = GetComponent<Renderer>().material;
+        mainPatrolPoint = transform.position;
     }
     // Start is called before the first frame update
     void Start()
     {
-        mainPatrolPoint = transform.position;
-    }   
+
+    }
 
     // Update is called once per frame
     void Update()
     {
-
         playerInSearchRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
         playerInSightRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
-
-        if (!playerInSightRange && !playerInAttackRange && !playerInSearchRange) Patroling();
+        if (!playerInSightRange && !playerInAttackRange) Patroling();
         if (playerInSightRange && !playerInAttackRange) ChasePlayer();
-        if (!playerInSightRange && playerInSearchRange) SearchPlayer();
         if (playerInSightRange && playerInAttackRange) AttackPlayer();
     }
-
-
+    
     private void Patroling()
     {
-        if (!walkPointSet)
+        Transform wp = patrolPoints[whichPatrolPoint];
+        if (Vector3.Distance(transform.position, wp.position) < 1f)
+        {
+            /*if (whichPatrolPoint == 3)
+            {
+                agent.SetDestination(mainPatrolPoint);
+            }
+            else */
+            whichPatrolPoint = (whichPatrolPoint + 1) % patrolPoints.Length;
+            
+;
+        }
+        else
+        {
+            agent.SetDestination(wp.position);
+        }
+        /*if (!walkPointSet)
         {
             MainSearchWalkPoint();
         }
@@ -67,30 +82,32 @@ public class EnemyAI : MonoBehaviour
         {
             agent.SetDestination(walkPoint);
         }
-        if (reachedWalkPoint)
-        {
-            
-        }
-
 
         Vector3 distanceToWalkPoint = transform.position - walkPoint;
         Vector3 distanceToPatrolPoint = transform.position - mainPatrolPoint;
-
         //Walkpoint reached
         if (distanceToWalkPoint.magnitude < 1f)
         {
+            //walkPointSet = false;
             agent.SetDestination(mainPatrolPoint);
+            //if (mainPatrolPoint.magnitude > 1f)
+            //{
+            //    walkPointSet = false;
+            //}
+            
         }
         if (distanceToPatrolPoint.magnitude < 1f)
         {
             walkPointSet = false;
-        }
-            
+        }*/
+
+
 
         material.color = Color.green;
     }
     private void MainSearchWalkPoint()
     {
+        /*
         //Calculate random point in range
         float randomZ = Random.Range(-walkPointRange, walkPointRange);
         float randomX = Random.Range(-walkPointRange, walkPointRange);
@@ -98,7 +115,7 @@ public class EnemyAI : MonoBehaviour
         walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
 
         if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
-            walkPointSet = true;
+            walkPointSet = true;*/
     }
 
     private void SearchPlayer()
@@ -110,7 +127,6 @@ public class EnemyAI : MonoBehaviour
             agent.SetDestination(searchWalkPoint);
 
         Vector3 distanceToWalkPoint = player.position - searchWalkPoint;
-
         //Walkpoint reached
         if (distanceToWalkPoint.magnitude < 1f)
             searchWalkPointSet = false;
