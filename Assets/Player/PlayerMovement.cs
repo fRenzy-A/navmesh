@@ -28,7 +28,6 @@ public class PlayerMovement : MonoBehaviour
 
     float playerHeight = 2f;
 
-    
 
 
     public float crouch = -1f;
@@ -44,10 +43,15 @@ public class PlayerMovement : MonoBehaviour
     public BoxCollider hitbox;
     private void Start()
     {
+        //sphereAttack = GetComponent<GameObject>();
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
     }
 
+    void Awake()
+    {
+        
+    }
     private void Update()
     {
         isGrounded = Physics.Raycast(transform.position, Vector3.down, playerHeight / 2 + 0.1f);
@@ -59,7 +63,6 @@ public class PlayerMovement : MonoBehaviour
         {
             Jump();
         }
-
         if (Input.GetKeyDown(crouchKey))
         {        
             Crouch();
@@ -151,4 +154,5 @@ public class PlayerMovement : MonoBehaviour
         }
         
     }
+
 }
