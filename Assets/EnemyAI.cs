@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,156 +11,163 @@ public class EnemyAI : MonoBehaviour
 
     public Transform player;
 
+    Transform fellowai;
+
+    EnemyAI enemyAI;
+
     public LayerMask whatIsGround, whatIsPlayer;
 
     Material material;
 
     public Vector3 walkPoint;
-    public Vector3 searchWalkPoint;
 
     public Transform[] patrolPoints;
     private int whichPatrolPoint = 0;
     public Vector3 mainPatrolPoint;
+    public Vector3 playerSeenArea;
 
-    bool walkPointSet, searchWalkPointSet;
-    bool reachedWalkPoint;
-    public float walkPointRange, searchWalkPointRange;
+    bool walkPointSet;
+    public float walkPointRange;
 
     public float chasingTime = 1100.0f;
 
-    bool chasing;
-    bool searching;
+    public bool searching;
+    public bool retreating;
+    public bool chasing;
 
-    public float searchRange, sightRange, attackRange;
-    public bool playerInSearchRange, playerInSightRange, playerInAttackRange;
+    public float searchTime = 10.0f;
+    public float searchTimeLeft;
+
+    public float alertRange, sightRange, attackRange;
+    public bool fellowInSightRange, playerInSightRange, playerInAttackRange;
     private void Awake()
     {
+        
         player = GameObject.Find("Player").transform;
         agent = GetComponent<NavMeshAgent>();
         material = GetComponent<Renderer>().material;
-        mainPatrolPoint = transform.position;
+        mainPatrolPoint = GameObject.Find("MainPatrolArea").transform.position;
+        playerSeenArea = GameObject.Find("PlayerSeenArea").transform.position; 
+        searchTimeLeft = searchTime;
     }
     // Start is called before the first frame update
     void Start()
     {
-
+        searching = false;
     }
-
+    public enum States
+    {
+        Patrol, Search, Retreat, Chase, Attack
+    }
+    public States states;
     // Update is called once per frame
     void Update()
-    {
-        playerInSearchRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
-        playerInSightRange = Physics.CheckSphere(transform.position, searchRange, whatIsPlayer);
+    {       
+        fellowInSightRange = Physics.CheckSphere(transform.position, alertRange);
+        playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
-        if (!playerInSightRange && !playerInAttackRange) Patroling();
-        if (playerInSightRange && !playerInAttackRange) ChasePlayer();
-        if (playerInSightRange && playerInAttackRange) AttackPlayer();
+
+        if (!playerInSightRange && !playerInAttackRange)
+        {
+            SearchingForPlayer();           
+        }
+        if (!searching)
+        {
+            Retreating();
+        }
+        if (!retreating)
+        {
+            Patroling();
+        }
+        //if (!playerInSightRange && !playerInAttackRange) whatState(States.Patrol);
+        if (!playerInSightRange && fellowInSightRange)
+        {           
+            Alerted();
+        }
+        if (playerInSightRange && !playerInAttackRange) ChasingPlayer();
+        if (playerInSightRange && playerInAttackRange) AttackingPlayer();
     }
-    
+    private void whatState(States states)
+    {
+        switch (states)
+        {
+            case States.Search:
+                SearchingForPlayer();
+                if (!searching)
+                {
+                    states = States.Retreat;
+                }
+                break;
+            case States.Retreat:
+                Retreating();
+                if (!retreating)
+                {
+                    states = States.Patrol;
+                }
+                break;
+            case States.Patrol:
+                Patroling();
+                break;
+        }
+    }
+    private void SearchingForPlayer()
+    {
+        chasing = false;
+        agent.SetDestination(playerSeenArea);
+        if (Vector3.Distance(transform.position, playerSeenArea) < 0.5f) searching = false;
+        
+        material.color = Color.magenta;
+        
+    }
+    private void Alerted()
+    {
+        fellowai = GameObject.FindGameObjectsWithTag("Enemy").transform;
+        enemyAI = fellowai.GetComponent<EnemyAI>();
+        if (enemyAI.chasing)
+        {
+            agent.SetDestination(fellowai.position);
+        }
+    }
     private void Patroling()
     {
         Transform wp = patrolPoints[whichPatrolPoint];
+
         if (Vector3.Distance(transform.position, wp.position) < 1f)
         {
-            /*if (whichPatrolPoint == 3)
-            {
-                agent.SetDestination(mainPatrolPoint);
-            }
-            else */
-            whichPatrolPoint = (whichPatrolPoint + 1) % patrolPoints.Length;
-            
-;
+            whichPatrolPoint = (whichPatrolPoint + 1) % patrolPoints.Length;           
         }
-        else
-        {
-            agent.SetDestination(wp.position);
-        }
-        /*if (!walkPointSet)
-        {
-            MainSearchWalkPoint();
-        }
-        if (walkPointSet)
-        {
-            agent.SetDestination(walkPoint);
-        }
-
-        Vector3 distanceToWalkPoint = transform.position - walkPoint;
-        Vector3 distanceToPatrolPoint = transform.position - mainPatrolPoint;
-        //Walkpoint reached
-        if (distanceToWalkPoint.magnitude < 1f)
-        {
-            //walkPointSet = false;
-            agent.SetDestination(mainPatrolPoint);
-            //if (mainPatrolPoint.magnitude > 1f)
-            //{
-            //    walkPointSet = false;
-            //}
-            
-        }
-        if (distanceToPatrolPoint.magnitude < 1f)
-        {
-            walkPointSet = false;
-        }*/
-
-
-
+        else agent.SetDestination(wp.position);      
+        
         material.color = Color.green;
     }
-    private void MainSearchWalkPoint()
+    private void Retreating()
     {
-        /*
-        //Calculate random point in range
-        float randomZ = Random.Range(-walkPointRange, walkPointRange);
-        float randomX = Random.Range(-walkPointRange, walkPointRange);
+        agent.SetDestination(mainPatrolPoint);
 
-        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
-
-        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
-            walkPointSet = true;*/
+        if (Vector3.Distance(transform.position, mainPatrolPoint) < 0.5f) retreating = false;
+        
+        material.color = Color.cyan;
     }
 
-    private void SearchPlayer()
+    private void ChasingPlayer()
     {
-        searching = true;
-        if (!searchWalkPointSet) SearchWalkPoint();
-
-        if (searchWalkPointSet)
-            agent.SetDestination(searchWalkPoint);
-
-        Vector3 distanceToWalkPoint = player.position - searchWalkPoint;
-        //Walkpoint reached
-        if (distanceToWalkPoint.magnitude < 1f)
-            searchWalkPointSet = false;
-
-        material.color= Color.magenta;
-    }
-    private void ChasePlayer()
-    {
+        playerSeenArea = player.position;
         agent.SetDestination(player.position);
 
-
+        chasing = true;
+        searching = true;
+        retreating = true;
+        
         material.color = Color.yellow;
     }
-
-
-    private void AttackPlayer()
+    private void AttackingPlayer()
     {
         agent.SetDestination(transform.position);
 
         material.color = Color.red;   
     }
-
-    private void SearchWalkPoint()
-    {
-        float randomZ = Random.Range(-searchWalkPointRange, searchWalkPointRange);
-        float randomX = Random.Range(-searchWalkPointRange, searchWalkPointRange);
-
-        searchWalkPoint = new Vector3(player.position.x + randomX, player.position.y, player.position.z + randomZ);
-
-        if (Physics.Raycast(searchWalkPoint, -transform.up, 2f, whatIsGround))
-            searchWalkPointSet = true;
-    }
-    private void OnDrawGizmosSelected()
+    
+private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
@@ -167,7 +175,7 @@ public class EnemyAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, sightRange);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, walkPointRange);
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, searchRange);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position,alertRange);
     }
 }
